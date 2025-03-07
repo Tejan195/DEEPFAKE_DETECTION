@@ -1,0 +1,9 @@
+# Ignore datasets folder
+dataset/
+
+# Ignore extracted features folder
+extracted_features/
+
+# Ignore specific file types (e.g., .csv, .npy, etc.)
+*.csv
+*.npy
