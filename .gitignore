@@ -1,7 +1,7 @@
 # Ignore datasets folder
 dataset/
 # Ignore test_frames folder
-test_frames/
+extracted_data/
 # Ignore extracted features folder
 extracted_features/
 

@@ -22,7 +22,7 @@ class LSTMModel(nn.Module):
         out = self.fc(out)
         return out
 
-# Load data
+# Load dataset features and labels
 X_train = np.load("C:/Users/tejan/OneDrive/Desktop/Deefake_Detection_Model/X_train.npy")
 y_train = np.load("C:/Users/tejan/OneDrive/Desktop/Deefake_Detection_Model/y_train.npy")
 X_val = np.load("C:/Users/tejan/OneDrive/Desktop/Deefake_Detection_Model/X_val.npy")
@@ -38,7 +38,7 @@ y_val_tensor = torch.LongTensor(y_val)
 X_test_tensor = torch.FloatTensor(X_test)
 y_test_tensor = torch.LongTensor(y_test)
 
-# Create DataLoader
+# Create DataLoaders
 train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
 val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
 test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
@@ -53,7 +53,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 # Training loop
-num_epochs = 50 # Increased for better convergence
+num_epochs = 50  # Increased for better convergence
 best_val_acc = 0.0
 
 for epoch in range(num_epochs):
@@ -87,9 +87,11 @@ for epoch in range(num_epochs):
         torch.save(model.state_dict(), "C:/Users/tejan/OneDrive/Desktop/Deefake_Detection_Model/lstm_model.pth")
         print("Model saved with improved accuracy.")
 
-# Test the best model
+# Load best model
 model.load_state_dict(torch.load("C:/Users/tejan/OneDrive/Desktop/Deefake_Detection_Model/lstm_model.pth"))
 model.eval()
+
+# Test on dataset
 correct = 0
 total = 0
 with torch.no_grad():
@@ -101,3 +103,26 @@ with torch.no_grad():
         correct += (predicted == y_batch).sum().item()
 test_acc = 100 * correct / total
 print(f"Test Accuracy: {test_acc:.2f}%")
+
+# ---- NEW CODE FOR VIDEO TESTING ----
+
+# Load video test features
+video_features_path = "C:/Users/tejan/OneDrive/Desktop/Deefake_Detection_Model/X_test_video.npy"
+X_test_video = np.load(video_features_path)
+
+# Convert video features to tensor
+X_test_video_tensor = torch.FloatTensor(X_test_video).to(device)
+
+# Run inference on video
+model.eval()
+with torch.no_grad():
+    outputs = model(X_test_video_tensor)
+    predictions = torch.argmax(outputs, dim=1).cpu().numpy()  # Get predicted class
+
+# Display results
+print("\n===== Video Inference Results =====")
+for i, pred in enumerate(predictions):
+    label = "FAKE" if pred == 1 else "REAL"
+    print(f"Video Clip {i+1}: Predicted as {label}")
+
+print("Inference on video completed.")
