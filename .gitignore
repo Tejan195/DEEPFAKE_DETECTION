@@ -1,9 +1,10 @@
 # Ignore datasets folder
 dataset/
-
+test_frames/
 # Ignore extracted features folder
 extracted_features/
 
 # Ignore specific file types (e.g., .csv, .npy, etc.)
 *.csv
 *.npy
+*.mp4
