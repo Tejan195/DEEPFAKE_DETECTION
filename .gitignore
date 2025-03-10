@@ -1,5 +1,6 @@
 # Ignore datasets folder
 dataset/
+# Ignore test_frames folder
 test_frames/
 # Ignore extracted features folder
 extracted_features/
