@@ -4,6 +4,9 @@ dataset/
 extracted_data/
 # Ignore extracted features folder
 extracted_features/
+dataset_ffpp/
+dataset_danet/
+dataset_celebdf/
 
 # Ignore specific file types (e.g., .csv, .npy, etc.)
 *.csv

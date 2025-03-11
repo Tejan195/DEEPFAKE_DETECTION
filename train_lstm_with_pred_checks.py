@@ -52,11 +52,11 @@ class LSTMClassifier(nn.Module):
         h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
         out, _ = self.lstm(x, (h0, c0))
-        out = self.fc(out[:, -1, :])  # Take last time step
+        out = self.fc(out[:, -1, :])  # Last time step
         return out
 
 # Model params
-input_size = 2048  # From Xception features
+input_size = 2048  # Xception features
 hidden_size = 128
 num_layers = 2
 num_classes = 2  # Real (0) vs Fake (1)
@@ -106,7 +106,7 @@ for epoch in range(num_epochs):
     
     print(f"Epoch [{epoch+1}/{num_epochs}], Train Acc: {train_acc:.2f}%, Val Acc: {val_acc:.2f}%")
 
-# Function to get predictions
+# Get predictions
 def get_predictions(model, loader):
     model.eval()
     all_preds = []
@@ -119,7 +119,6 @@ def get_predictions(model, loader):
             all_preds.extend(predicted.cpu().numpy())
     return np.array(all_preds)
 
-# Get predictions for all splits
 train_preds = get_predictions(model, train_loader)
 val_preds = get_predictions(model, val_loader)
 test_preds = get_predictions(model, test_loader)
@@ -129,7 +128,7 @@ np.save(os.path.join(base_path, "train_preds.npy"), train_preds)
 np.save(os.path.join(base_path, "val_preds.npy"), val_preds)
 np.save(os.path.join(base_path, "test_preds.npy"), test_preds)
 
-# Evaluate test accuracy
+# Test accuracy
 test_correct = 0
 test_total = 0
 with torch.no_grad():
