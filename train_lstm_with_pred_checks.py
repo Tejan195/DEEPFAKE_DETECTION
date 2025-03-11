@@ -46,6 +46,7 @@ class LSTMClassifier(nn.Module):
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.dropout = nn.Dropout(0.2)
         self.fc = nn.Linear(hidden_size, num_classes)
     
     def forward(self, x):
@@ -57,8 +58,8 @@ class LSTMClassifier(nn.Module):
 
 # Model params
 input_size = 2048  # Xception features
-hidden_size = 128
-num_layers = 2
+hidden_size = 256
+num_layers = 3
 num_classes = 2  # Real (0) vs Fake (1)
 
 model = LSTMClassifier(input_size, hidden_size, num_layers, num_classes)
@@ -71,7 +72,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 # Training loop
-num_epochs = 100
+num_epochs = 300
 for epoch in range(num_epochs):
     model.train()
     train_correct = 0

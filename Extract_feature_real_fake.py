@@ -12,9 +12,13 @@ downloads_folder = r"C:\Users\tejan\Downloads"
 ffpp_real_zip = os.path.join(downloads_folder, "FaceForensics++_real_data_for_DF40.zip")
 celebdf_zip = os.path.join(downloads_folder, "Celeb-DF-v2_real_data_for_DF40.zip")
 danet_zip = os.path.join(downloads_folder, "danet.zip")
+facedancer_zip = os.path.join(downloads_folder, "facedancer.zip")
+e4s_zip = os.path.join(downloads_folder, "e4s.zip")
 ffpp_real_extract = os.path.join(base_path, "dataset_ffpp")
 celebdf_extract = os.path.join(base_path, "dataset_celebdf")
 danet_extract = os.path.join(base_path, "dataset_danet")
+facedancer_extract = os.path.join(base_path, "dataset_facedancer")
+e4s_extract = os.path.join(base_path, "dataset_e4s")
 output_feature_file = os.path.join(base_path, "features_2048_timm.npy")
 output_label_file = os.path.join(base_path, "labels.npy")
 
@@ -29,13 +33,14 @@ def extract_zip(zip_path, extract_to):
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall(extract_to)
     print(f"Extracted to {extract_to}")
-    # Debug: List top-level contents
     print(f"Contents of {extract_to}: {os.listdir(extract_to)}")
 
 print("Extracting all zips...")
 extract_zip(ffpp_real_zip, ffpp_real_extract)
 extract_zip(celebdf_zip, celebdf_extract)
 extract_zip(danet_zip, danet_extract)
+extract_zip(facedancer_zip, facedancer_extract)
+extract_zip(e4s_zip, e4s_extract)
 
 # Load Xception model
 cnn = timm.create_model("xception", pretrained=True, num_classes=0)
@@ -68,7 +73,7 @@ def extract_features(image_paths, model, batch_size=32):
         print(f"Processed batch of {len(batch_paths)} images")
     return np.array(features)
 
-# Frame extraction from videos
+# Frame extraction from videos (fallback)
 def extract_frames(video_path, output_folder, seconds_per_frame=1):
     os.makedirs(output_folder, exist_ok=True)
     cap = cv2.VideoCapture(video_path)
@@ -98,7 +103,7 @@ def extract_frames(video_path, output_folder, seconds_per_frame=1):
 features = []
 labels = []
 
-# FF++ real data
+# FF++ real data (label 0)
 print("\nProcessing FF++ real data...")
 ffpp_images = []
 for root, _, files in os.walk(ffpp_real_extract):
@@ -126,10 +131,11 @@ else:
     else:
         print(f"No FF++ real data found in {ffpp_real_extract}")
 
-# Celeb-DF-v2 real data
+# Celeb-DF-v2 real data (label 0)
 print("\nProcessing Celeb-DF-v2 real data...")
 celebdf_images = []
 for root, _, files in os.walk(celebdf_extract):
+    print(f"Checking Celeb-DF folder: {root}")
     celebdf_images.extend([os.path.join(root, f) for f in files if f.endswith(('.png', '.jpg', '.jpeg'))])
 if celebdf_images:
     print(f"Found {len(celebdf_images)} Celeb-DF-v2 real frames")
@@ -139,6 +145,7 @@ if celebdf_images:
 else:
     celebdf_videos = []
     for root, _, files in os.walk(celebdf_extract):
+        print(f"Checking Celeb-DF folder for videos: {root}")
         celebdf_videos.extend([os.path.join(root, f) for f in files if f.endswith(('.mp4', '.avi', '.mov'))])
     if celebdf_videos:
         print(f"Found {len(celebdf_videos)} Celeb-DF-v2 real videos")
@@ -152,10 +159,11 @@ else:
     else:
         print(f"No Celeb-DF-v2 real data found in {celebdf_extract}")
 
-# Danet fake data
+# Danet fake data (label 1)
 print("\nProcessing danet fake data...")
 danet_images = []
 for root, _, files in os.walk(danet_extract):
+    print(f"Checking danet folder: {root}")
     danet_images.extend([os.path.join(root, f) for f in files if f.endswith(('.png', '.jpg', '.jpeg'))])
 if danet_images:
     print(f"Found {len(danet_images)} danet fake frames")
@@ -164,6 +172,66 @@ if danet_images:
     labels.extend([1] * len(danet_features))
 else:
     print(f"No danet fake data found in {danet_extract}")
+
+# Facedancer fake data (label 1) - cdf/frames
+print("\nProcessing facedancer fake data (cdf/frames)...")
+facedancer_images = []
+for root, _, files in os.walk(facedancer_extract):
+    if "cdf" in root.lower() and "frames" in root.lower():  # Target cdf/frames
+        print(f"Checking facedancer folder: {root}")
+        facedancer_images.extend([os.path.join(root, f) for f in files if f.endswith(('.png', '.jpg', '.jpeg'))])
+if facedancer_images:
+    print(f"Found {len(facedancer_images)} facedancer fake frames")
+    facedancer_features = extract_features(facedancer_images, cnn)
+    features.append(facedancer_features)
+    labels.extend([1] * len(facedancer_features))
+else:
+    facedancer_videos = []
+    for root, _, files in os.walk(facedancer_extract):
+        if "cdf" in root.lower():  # Check cdf for videos
+            print(f"Checking facedancer folder for videos: {root}")
+            facedancer_videos.extend([os.path.join(root, f) for f in files if f.endswith(('.mp4', '.avi', '.mov'))])
+    if facedancer_videos:
+        print(f"Found {len(facedancer_videos)} facedancer fake videos")
+        for video in facedancer_videos:
+            frame_folder = os.path.join(facedancer_extract, "frames", os.path.basename(video).split('.')[0])
+            frame_paths = extract_frames(video, frame_folder)
+            if frame_paths:
+                facedancer_features = extract_features(frame_paths, cnn)
+                features.append(facedancer_features)
+                labels.extend([1] * len(facedancer_features))
+    else:
+        print(f"No facedancer fake data found in {facedancer_extract}/cdf/frames")
+
+# E4S fake data (label 1) - cdf/frames and ff/frames
+print("\nProcessing e4s fake data (cdf/frames and ff/frames)...")
+e4s_images = []
+for root, _, files in os.walk(e4s_extract):
+    if ("cdf" in root.lower() or "ff" in root.lower()) and "frames" in root.lower():  # Target cdf/frames or ff/frames
+        print(f"Checking e4s folder: {root}")
+        e4s_images.extend([os.path.join(root, f) for f in files if f.endswith(('.png', '.jpg', '.jpeg'))])
+if e4s_images:
+    print(f"Found {len(e4s_images)} e4s fake frames")
+    e4s_features = extract_features(e4s_images, cnn)
+    features.append(e4s_features)
+    labels.extend([1] * len(e4s_features))
+else:
+    e4s_videos = []
+    for root, _, files in os.walk(e4s_extract):
+        if "cdf" in root.lower() or "ff" in root.lower():  # Check cdf or ff for videos
+            print(f"Checking e4s folder for videos: {root}")
+            e4s_videos.extend([os.path.join(root, f) for f in files if f.endswith(('.mp4', '.avi', '.mov'))])
+    if e4s_videos:
+        print(f"Found {len(e4s_videos)} e4s fake videos")
+        for video in e4s_videos:
+            frame_folder = os.path.join(e4s_extract, "frames", os.path.basename(video).split('.')[0])
+            frame_paths = extract_frames(video, frame_folder)
+            if frame_paths:
+                e4s_features = extract_features(frame_paths, cnn)
+                features.append(e4s_features)
+                labels.extend([1] * len(e4s_features))
+    else:
+        print(f"No e4s fake data found in {e4s_extract}/cdf/frames or ff/frames")
 
 # Combine and save
 if features:
