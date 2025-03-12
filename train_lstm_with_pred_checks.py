@@ -69,10 +69,13 @@ if torch.cuda.is_available():
 
 # Loss and optimizer
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=0.0005)
 
-# Training loop
-num_epochs = 300
+# Training loop with early stopping
+num_epochs = 90
+best_val_acc = 0
+patience = 20
+patience_counter = 0
 for epoch in range(num_epochs):
     model.train()
     train_correct = 0
@@ -106,6 +109,20 @@ for epoch in range(num_epochs):
     val_acc = 100 * val_correct / val_total
     
     print(f"Epoch [{epoch+1}/{num_epochs}], Train Acc: {train_acc:.2f}%, Val Acc: {val_acc:.2f}%")
+    
+    # Early stopping logic
+    if val_acc > best_val_acc:
+        best_val_acc = val_acc
+        patience_counter = 0
+        torch.save(model.state_dict(), os.path.join(base_path, "best_model.pt"))
+        print(f"Saved best model with Val Acc: {best_val_acc:.2f}%")
+    else:
+        patience_counter += 1
+        print(f"Patience counter: {patience_counter}/{patience}")
+        if patience_counter >= patience:
+            print(f"Early stopping at epoch {epoch+1}")
+            model.load_state_dict(torch.load(os.path.join(base_path, "best_model.pt")))
+            break
 
 # Get predictions
 def get_predictions(model, loader):

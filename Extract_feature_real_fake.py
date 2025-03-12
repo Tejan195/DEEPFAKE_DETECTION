@@ -49,7 +49,7 @@ if torch.cuda.is_available():
     cnn = cnn.cuda()
     print("Using GPU")
 
-# Feature extraction function
+# Feature extraction function with BGR to RGB fix
 def extract_features(image_paths, model, batch_size=32):
     features = []
     for i in range(0, len(image_paths), batch_size):
@@ -60,6 +60,7 @@ def extract_features(image_paths, model, batch_size=32):
             if img is None:
                 print(f"Failed to load {img_path}")
                 continue
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
             img = cv2.resize(img, (299, 299))
             batch_imgs.append(img)
         if not batch_imgs:
