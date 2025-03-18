@@ -10,15 +10,13 @@ import shutil
 base_path = r"C:/Users/tejan/OneDrive/Desktop/Deefake_Detection_Model"
 downloads_folder = r"C:\Users\tejan\Downloads"
 ffpp_real_zip = os.path.join(downloads_folder, "FaceForensics++_real_data_for_DF40.zip")
-celebdf_zip = os.path.join(downloads_folder, "Celeb-DF-v2_real_data_for_DF40.zip")
-danet_zip = os.path.join(downloads_folder, "danet.zip")
-facedancer_zip = os.path.join(downloads_folder, "facedancer.zip")
-e4s_zip = os.path.join(downloads_folder, "e4s.zip")
+danet_zip = os.path.join(downloads_folder, "danet_train.zip")
+facedancer_zip = os.path.join(downloads_folder, "facedancer_train.zip")
+e4s_zip = os.path.join(downloads_folder, "e4s_train.zip")
 ffpp_real_extract = os.path.join(base_path, "dataset_ffpp")
-celebdf_extract = os.path.join(base_path, "dataset_celebdf")
-danet_extract = os.path.join(base_path, "dataset_danet")
-facedancer_extract = os.path.join(base_path, "dataset_facedancer")
-e4s_extract = os.path.join(base_path, "dataset_e4s")
+danet_extract = os.path.join(base_path, "dataset_danet_train")
+facedancer_extract = os.path.join(base_path, "dataset_facedancer_train")
+e4s_extract = os.path.join(base_path, "dataset_e4s_train")
 output_feature_file = os.path.join(base_path, "features_2048_timm.npy")
 output_label_file = os.path.join(base_path, "labels.npy")
 
@@ -37,7 +35,6 @@ def extract_zip(zip_path, extract_to):
 
 print("Extracting all zips...")
 extract_zip(ffpp_real_zip, ffpp_real_extract)
-extract_zip(celebdf_zip, celebdf_extract)
 extract_zip(danet_zip, danet_extract)
 extract_zip(facedancer_zip, facedancer_extract)
 extract_zip(e4s_zip, e4s_extract)
@@ -131,34 +128,6 @@ else:
                 labels.extend([0] * len(ffpp_features))
     else:
         print(f"No FF++ real data found in {ffpp_real_extract}")
-
-# Celeb-DF-v2 real data (label 0)
-print("\nProcessing Celeb-DF-v2 real data...")
-celebdf_images = []
-for root, _, files in os.walk(celebdf_extract):
-    print(f"Checking Celeb-DF folder: {root}")
-    celebdf_images.extend([os.path.join(root, f) for f in files if f.endswith(('.png', '.jpg', '.jpeg'))])
-if celebdf_images:
-    print(f"Found {len(celebdf_images)} Celeb-DF-v2 real frames")
-    celebdf_features = extract_features(celebdf_images, cnn)
-    features.append(celebdf_features)
-    labels.extend([0] * len(celebdf_features))
-else:
-    celebdf_videos = []
-    for root, _, files in os.walk(celebdf_extract):
-        print(f"Checking Celeb-DF folder for videos: {root}")
-        celebdf_videos.extend([os.path.join(root, f) for f in files if f.endswith(('.mp4', '.avi', '.mov'))])
-    if celebdf_videos:
-        print(f"Found {len(celebdf_videos)} Celeb-DF-v2 real videos")
-        for video in celebdf_videos:
-            frame_folder = os.path.join(celebdf_extract, "frames", os.path.basename(video).split('.')[0])
-            frame_paths = extract_frames(video, frame_folder)
-            if frame_paths:
-                celebdf_features = extract_features(frame_paths, cnn)
-                features.append(celebdf_features)
-                labels.extend([0] * len(celebdf_features))
-    else:
-        print(f"No Celeb-DF-v2 real data found in {celebdf_extract}")
 
 # Danet fake data (label 1)
 print("\nProcessing danet fake data...")
