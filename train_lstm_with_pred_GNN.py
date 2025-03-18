@@ -6,6 +6,10 @@ from torch.utils.data import DataLoader, TensorDataset
 import os
 from torch_geometric.nn import GCNConv
 from sklearn.metrics import roc_auc_score
+import warnings
+
+# Suppress warnings (optional)
+warnings.filterwarnings("ignore")
 
 # Paths
 base_path = r"C:/Users/tejan/OneDrive/Desktop/Deefake_Detection_Model"
@@ -17,7 +21,7 @@ X_test_path = os.path.join(base_path, "X_test.npy")
 y_test_path = os.path.join(base_path, "y_test.npy")
 
 # Load data
-X_train = np.load(X_train_path)  # (7007, 10, 2048) - Your actual size
+X_train = np.load(X_train_path)  # (7007, 10, 2048)
 y_train = np.load(y_train_path)  # (7007,)
 X_val = np.load(X_val_path)      # (1503, 10, 2048)
 y_val = np.load(y_val_path)      # (1503,)
@@ -36,20 +40,22 @@ y_test = torch.tensor(y_test, dtype=torch.long)
 train_dataset = TensorDataset(X_train, y_train)
 val_dataset = TensorDataset(X_val, y_val)
 test_dataset = TensorDataset(X_test, y_test)
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)  # 4GB GPU safe
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 # Model
 class LSTMGNNClassifier(nn.Module):
-    def __init__(self, input_size=2048, hidden_size=256, num_layers=3, gnn_hidden=128, num_classes=2):
+    def __init__(self, input_size=2048, hidden_size=192, num_layers=2, gnn_hidden=128, num_classes=2):
         super(LSTMGNNClassifier, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=0.5)  # Dropout 0.5
-        self.dropout = nn.Dropout(0.5)  # Upped from 0.3
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=0.4)
+        self.dropout = nn.Dropout(0.4)  # Dropout for GNN
         self.gnn_conv1 = GCNConv(hidden_size, gnn_hidden)
         self.gnn_conv2 = GCNConv(gnn_hidden, gnn_hidden)
+        self.bn = nn.BatchNorm1d(gnn_hidden)  # Batch normalization
+        self.fc_dropout = nn.Dropout(0.4)  # Dropout for FC layer
         self.fc = nn.Linear(gnn_hidden, num_classes)
 
     def forward(self, x, edge_index):
@@ -61,7 +67,9 @@ class LSTMGNNClassifier(nn.Module):
         gnn_out = torch.relu(self.gnn_conv1(gnn_in, edge_index))
         gnn_out = self.dropout(gnn_out)
         gnn_out = self.gnn_conv2(gnn_out, edge_index)  # (batch * seq_len, gnn_hidden)
-        gnn_out = gnn_out.view(batch_size, seq_len, -1).mean(dim=1)  # (batch, gnn_hidden)
+        gnn_out = gnn_out.view(batch_size, seq_len, -1)  # (batch, seq_len, gnn_hidden)
+        gnn_out = self.bn(gnn_out.mean(dim=1))  # (batch, gnn_hidden) with batch norm
+        gnn_out = self.fc_dropout(gnn_out)
         return self.fc(gnn_out)  # (batch, num_classes)
 
 # Fixed edge index function
@@ -91,11 +99,12 @@ class_weights = torch.tensor([1.0 / 2212, 1.0 / 4795], dtype=torch.float32)  # R
 if torch.cuda.is_available():
     class_weights = class_weights.cuda()
 criterion = nn.CrossEntropyLoss(weight=class_weights)
-optimizer = optim.Adam(model.parameters(), lr=0.00003, weight_decay=0.0001)  # Lower lr + L2 reg
+optimizer = optim.Adam(model.parameters(), lr=0.00003, weight_decay=0.0005)  # L2 regularization
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=5, verbose=True)
 
 # Training loop
-num_epochs = 30  # More room with slower lr
-patience = 7  # Up from 5
+num_epochs = 40
+patience = 12
 best_val_acc = 0
 patience_counter = 0
 
@@ -111,6 +120,7 @@ for epoch in range(num_epochs):
         outputs = model(inputs, edge_index)
         loss = criterion(outputs, labels)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # Gradient clipping
         optimizer.step()
         _, predicted = torch.max(outputs, 1)
         train_total += labels.size(0)
@@ -131,7 +141,9 @@ for epoch in range(num_epochs):
             val_correct += (predicted == labels).sum().item()
     val_acc = 100 * val_correct / val_total
     
-    print(f"Epoch [{epoch+1}/{num_epochs}], Train Acc: {train_acc:.2f}%, Val Acc: {val_acc:.2f}%")
+    current_lr = optimizer.param_groups[0]['lr']  # Get current learning rate
+    print(f"Epoch [{epoch+1}/{num_epochs}], Train Acc: {train_acc:.2f}%, Val Acc: {val_acc:.2f}%, LR: {current_lr:.7f}")
+    
     if val_acc > best_val_acc:
         best_val_acc = val_acc
         patience_counter = 0
@@ -143,6 +155,7 @@ for epoch in range(num_epochs):
         if patience_counter >= patience:
             print("Early stopping.")
             break
+    scheduler.step(val_acc)  # Update learning rate based on validation accuracy
 
 # Test
 model.load_state_dict(torch.load(os.path.join(base_path, "best_model_gnn.pt")))
