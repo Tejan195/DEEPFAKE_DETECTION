@@ -3,7 +3,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 
 # Load test ground truth and predictions
 y_test = np.load("C:/Users/tejan/OneDrive/Desktop/Deefake_Detection_Model/y_test.npy")
-test_preds = np.load("C:/Users/tejan/OneDrive/Desktop/Deefake_Detection_Model/test_preds.npy")  # Fixed!
+test_preds = np.load("C:/Users/tejan/OneDrive/Desktop/Deefake_Detection_Model/test_preds.npy")
 
 # Debug lengths
 print(f"y_test length: {len(y_test)}, test_preds length: {len(test_preds)}")
@@ -12,6 +12,9 @@ print(f"y_test length: {len(y_test)}, test_preds length: {len(test_preds)}")
 if len(y_test) != len(test_preds):
     raise ValueError(f"Length mismatch: y_test ({len(y_test)}) vs test_preds ({len(test_preds)})")
 
+# Binarize test_preds (threshold at 0.5)
+test_preds_binary = (test_preds > 0.5).astype(int)
+
 # Compute and print metrics
-print("Confusion Matrix:\n", confusion_matrix(y_test, test_preds))
-print("Classification Report:\n", classification_report(y_test, test_preds))
+print("Confusion Matrix:\n", confusion_matrix(y_test, test_preds_binary))
+print("Classification Report:\n", classification_report(y_test, test_preds_binary))

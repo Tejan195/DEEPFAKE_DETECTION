@@ -16,3 +16,4 @@ dataset_e4s_train/
 *.mp4
 *.txt
 *.pt
+*.pth

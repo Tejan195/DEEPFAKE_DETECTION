@@ -162,7 +162,7 @@ model.load_state_dict(torch.load(os.path.join(base_path, "best_model_gnn.pt")))
 model.eval()
 test_correct = 0
 test_total = 0
-test_preds, test_labels = [], []
+test_preds, test_labels, test_probs = [], [], []  # Add test_probs
 with torch.no_grad():
     for inputs, labels in test_loader:
         if torch.cuda.is_available():
@@ -172,11 +172,13 @@ with torch.no_grad():
         _, predicted = torch.max(outputs, 1)
         test_total += labels.size(0)
         test_correct += (predicted == labels).sum().item()
-        test_preds.extend(outputs[:, 1].cpu().numpy())  # Prob for class 1 (fake)
+        test_preds.extend(predicted.cpu().numpy())  # Save binary predictions
+        test_probs.extend(outputs[:, 1].cpu().numpy())  # Save probabilities
         test_labels.extend(labels.cpu().numpy())
 test_acc = 100 * test_correct / test_total
-test_auc = roc_auc_score(test_labels, test_preds)  # Use probs for AUC
+test_auc = roc_auc_score(test_labels, test_probs)  # Use probs for AUC
 print(f"Test Accuracy: {test_acc:.2f}%, Test AUC: {test_auc:.4f}")
 
-# Save predictions
+# Save both binary predictions and probabilities
 np.save(os.path.join(base_path, "test_preds.npy"), np.array(test_preds))
+np.save(os.path.join(base_path, "test_probs.npy"), np.array(test_probs))
