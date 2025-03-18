@@ -17,12 +17,12 @@ X_test_path = os.path.join(base_path, "X_test.npy")
 y_test_path = os.path.join(base_path, "y_test.npy")
 
 # Load data
-X_train = np.load(X_train_path)  # (9585, 10, 2048)
-y_train = np.load(y_train_path)  # (9585,)
-X_val = np.load(X_val_path)      # (2054, 10, 2048)
-y_val = np.load(y_val_path)      # (2054,)
-X_test = np.load(X_test_path)    # (2054, 10, 2048)
-y_test = np.load(y_test_path)    # (2054,)
+X_train = np.load(X_train_path)  # (7007, 10, 2048) - Your actual size
+y_train = np.load(y_train_path)  # (7007,)
+X_val = np.load(X_val_path)      # (1503, 10, 2048)
+y_val = np.load(y_val_path)      # (1503,)
+X_test = np.load(X_test_path)    # (1502, 10, 2048)
+y_test = np.load(y_test_path)    # (1502,)
 
 # Convert to tensors
 X_train = torch.tensor(X_train, dtype=torch.float32)
@@ -36,7 +36,7 @@ y_test = torch.tensor(y_test, dtype=torch.long)
 train_dataset = TensorDataset(X_train, y_train)
 val_dataset = TensorDataset(X_val, y_val)
 test_dataset = TensorDataset(X_test, y_test)
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)  # 4GB GPU safe
 val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
@@ -46,8 +46,8 @@ class LSTMGNNClassifier(nn.Module):
         super(LSTMGNNClassifier, self).__init__()
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self.dropout = nn.Dropout(0.3)
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=0.5)  # Dropout 0.5
+        self.dropout = nn.Dropout(0.5)  # Upped from 0.3
         self.gnn_conv1 = GCNConv(hidden_size, gnn_hidden)
         self.gnn_conv2 = GCNConv(gnn_hidden, gnn_hidden)
         self.fc = nn.Linear(gnn_hidden, num_classes)
@@ -86,13 +86,16 @@ if torch.cuda.is_available():
     model = model.cuda()
     print("Using GPU")
 
-# Loss and optimizer
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.0005)
+# Loss with class weights
+class_weights = torch.tensor([1.0 / 2212, 1.0 / 4795], dtype=torch.float32)  # Real vs. fake balance
+if torch.cuda.is_available():
+    class_weights = class_weights.cuda()
+criterion = nn.CrossEntropyLoss(weight=class_weights)
+optimizer = optim.Adam(model.parameters(), lr=0.00003, weight_decay=0.0001)  # Lower lr + L2 reg
 
 # Training loop
-num_epochs = 17
-patience = 5
+num_epochs = 30  # More room with slower lr
+patience = 7  # Up from 5
 best_val_acc = 0
 patience_counter = 0
 
@@ -156,10 +159,10 @@ with torch.no_grad():
         _, predicted = torch.max(outputs, 1)
         test_total += labels.size(0)
         test_correct += (predicted == labels).sum().item()
-        test_preds.extend(predicted.cpu().numpy())
+        test_preds.extend(outputs[:, 1].cpu().numpy())  # Prob for class 1 (fake)
         test_labels.extend(labels.cpu().numpy())
 test_acc = 100 * test_correct / test_total
-test_auc = roc_auc_score(test_labels, test_preds)
+test_auc = roc_auc_score(test_labels, test_preds)  # Use probs for AUC
 print(f"Test Accuracy: {test_acc:.2f}%, Test AUC: {test_auc:.4f}")
 
 # Save predictions

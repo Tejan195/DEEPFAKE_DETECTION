@@ -5,10 +5,10 @@ extracted_data/
 # Ignore extracted features folder
 extracted_features/
 dataset_ffpp/
-dataset_danet/
+dataset_danet_train/
 dataset_celebdf/
-dataset_facedancer/
-dataset_e4s/
+dataset_facedancer_train/
+dataset_e4s_train/
 
 # Ignore specific file types (e.g., .csv, .npy, etc.)
 *.csv
