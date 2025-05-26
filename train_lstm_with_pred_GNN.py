@@ -118,8 +118,9 @@ patience = 12
 best_val_acc = 0
 patience_counter = 0
 
-# Training loop
-for epoch in range(num_epochs):
+epoch = 0
+while True:
+    epoch += 1
     model.train()
     train_correct = 0
     train_total = 0
@@ -131,14 +132,13 @@ for epoch in range(num_epochs):
         outputs = model(inputs, edge_index)
         loss = criterion(outputs, labels)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # Gradient clipping
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
         _, predicted = torch.max(outputs, 1)
         train_total += labels.size(0)
         train_correct += (predicted == labels).sum().item()
     train_acc = 100 * train_correct / train_total
-    
-    # Validation loop
+
     model.eval()
     val_correct = 0
     val_total = 0
@@ -152,12 +152,10 @@ for epoch in range(num_epochs):
             val_total += labels.size(0)
             val_correct += (predicted == labels).sum().item()
     val_acc = 100 * val_correct / val_total
-    
-    # Print training and validation accuracy
+
     current_lr = optimizer.param_groups[0]['lr']
-    print(f"Epoch [{epoch+1}/{num_epochs}], Train Acc: {train_acc:.2f}%, Val Acc: {val_acc:.2f}%, LR: {current_lr:.7f}")
-    
-    # Save best model and implement early stopping
+    print(f"Epoch [{epoch}], Train Acc: {train_acc:.2f}%, Val Acc: {val_acc:.2f}%, LR: {current_lr:.7f}")
+
     if val_acc > best_val_acc:
         best_val_acc = val_acc
         patience_counter = 0
