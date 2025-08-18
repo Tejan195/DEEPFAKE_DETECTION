@@ -125,7 +125,7 @@ Fake      89      914
 ### **Installation Steps**
 ```bash
 # Clone repository
-git clone https://github.com/your-repo/deepfake-detection.git
+git clone https://github.com/Tejan195/DEEPFAKE_DETECTION
 cd deepfake-detection
 
 # Create virtual environment
