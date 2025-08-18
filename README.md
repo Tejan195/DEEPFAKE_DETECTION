@@ -320,7 +320,7 @@ If you use this work in your research, please cite:
   institution={Siksha 'O' Anusandhan University},
   address={Bhubaneswar, Odisha, India},
   note={Manuscript submitted for publication},
-  url={https://github.com/your-repo/deepfake-detection},
+  url={https://github.com/Tejan195/DEEPFAKE_DETECTION},
   keywords={deepfake detection, hybrid model, LSTM, GNN, CNN, computer vision}
 }
 ```
