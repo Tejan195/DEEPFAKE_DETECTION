@@ -312,10 +312,16 @@ If you use this work in your research, please cite:
 @article{thapa2025deepfake,
   title={Analysis and Development of Deepfake Detection Using Hybrid LSTM-GNN-CNN Model},
   author={Thapa, Tej Bahadur and Jaypuria, Akash and Mohanty, Amisha and Mohanty, Dibyajyoti and Das, Nilima Rani},
-  journal={Advanced AI Research},
+  journal={Under Review},
   year={2025},
+  volume={},
+  number={},
+  pages={},
   institution={Siksha 'O' Anusandhan University},
-  doi={10.xxxx/xxxx.xxxx}
+  address={Bhubaneswar, Odisha, India},
+  note={Manuscript submitted for publication},
+  url={https://github.com/your-repo/deepfake-detection},
+  keywords={deepfake detection, hybrid model, LSTM, GNN, CNN, computer vision}
 }
 ```
 
