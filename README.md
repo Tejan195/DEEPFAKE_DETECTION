@@ -1,7 +1,5 @@
 # Analysis and Development of Deepfake Detection
 
-[
-[![TensorFlow](https://img.shields.io/badge/
 
 The **"Analysis and Development of Deepfake Detection"** project addresses the escalating threat of AI-generated synthetic media through a **novel hybrid LSTM-GNN-CNN architecture**. As deepfakes proliferate exponentially—from 7,813 instances in 2020 to a projected 8 million by 2025—this research delivers a robust, scalable solution for detecting manipulated media with unprecedented accuracy.
 
